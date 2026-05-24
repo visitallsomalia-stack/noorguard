@@ -4,17 +4,19 @@ import Shield from './pages/Shield'
 import Breath from './pages/Breath'
 import Deeds from './pages/Deeds'
 import Solidarity from './pages/Solidarity'
+import Calculator from './pages/Calculator'
 
 export default function App() {
   return (
     <BrowserRouter>
-      <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100dvh', position: 'relative' }}>
+      <div style={{ maxWidth: 480, margin: '0 auto', minHeight: '100dvh' }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/shield" element={<Shield />} />
           <Route path="/breath" element={<Breath />} />
           <Route path="/deeds" element={<Deeds />} />
           <Route path="/solidarity" element={<Solidarity />} />
+          <Route path="/stealth" element={<Calculator />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>

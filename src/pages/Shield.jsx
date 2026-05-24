@@ -2,18 +2,24 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getRandomAyah } from '../lib/ayahs'
 
+const EMOTIONS = [
+  { key: 'all', label: 'Any' },
+  { key: 'fear', label: 'I feel watched' },
+  { key: 'guilt', label: 'I slipped' },
+  { key: 'hope', label: 'I need strength' },
+  { key: 'guard', label: 'I need a barrier' },
+]
+
 export default function Shield() {
   const navigate = useNavigate()
   const [ayah, setAyah] = useState(() => getRandomAyah())
-  const [audioState, setAudioState] = useState('loading') // loading | playing | done | error
-  const [shaking, setShaking] = useState(false)
+  const [audioState, setAudioState] = useState('idle') // idle|loading|playing|done|error
+  const [emotion, setEmotion] = useState('all')
+  const [transitioning, setTransitioning] = useState(false)
   const audioRef = useRef(null)
 
   const playAudio = useCallback((url) => {
-    if (audioRef.current) {
-      audioRef.current.pause()
-      audioRef.current.src = ''
-    }
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null }
     setAudioState('loading')
     const audio = new Audio(url)
     audioRef.current = audio
@@ -26,111 +32,173 @@ export default function Shield() {
     audio.load()
   }, [])
 
+  function changeAyah(newAyah) {
+    setTransitioning(true)
+    setTimeout(() => {
+      setAyah(newAyah)
+      setTransitioning(false)
+      playAudio(newAyah.audioUrl)
+    }, 300)
+  }
+
   useEffect(() => {
     playAudio(ayah.audioUrl)
     return () => { if (audioRef.current) audioRef.current.pause() }
-  }, [ayah, playAudio])
+  }, [])
 
-  // Shake to change ayah
+  // Shake detection
   useEffect(() => {
-    let lastTime = 0
-    let lastX = 0, lastY = 0, lastZ = 0
-
+    let lastTime = 0, lastX = 0, lastY = 0, lastZ = 0
     function handleMotion(e) {
-      const { x, y, z } = e.accelerationIncludingGravity || {}
+      const { x = 0, y = 0, z = 0 } = e.accelerationIncludingGravity || {}
       const now = Date.now()
-      if (now - lastTime < 100) return
+      if (now - lastTime < 200) return
       const delta = Math.abs(x - lastX) + Math.abs(y - lastY) + Math.abs(z - lastZ)
-      if (delta > 30) {
-        setShaking(true)
-        setTimeout(() => setShaking(false), 600)
-        const next = getRandomAyah(ayah.id)
-        setAyah(next)
-        playAudio(next.audioUrl)
+      if (delta > 25) {
+        lastTime = now
+        changeAyah(getRandomAyah(ayah.id))
       }
-      lastX = x; lastY = y; lastZ = z; lastTime = now
+      lastX = x; lastY = y; lastZ = z
     }
-
     window.addEventListener('devicemotion', handleMotion)
     return () => window.removeEventListener('devicemotion', handleMotion)
-  }, [ayah, playAudio])
+  }, [ayah])
 
-  function handleNewAyah() {
-    const next = getRandomAyah(ayah.id)
-    setAyah(next)
-    playAudio(next.audioUrl)
+  const themeMap = {
+    watchful: '#C45050',
+    guard: '#C9A84C',
+    mercy: '#5AAA6A',
+    strength: '#5A85C9',
   }
-
-  const themeColors = {
-    watchful: { glow: 'rgba(255,100,100,0.08)', accent: '#FF6B6B' },
-    guard: { glow: 'rgba(201,168,76,0.08)', accent: '#C9A84C' },
-    mercy: { glow: 'rgba(100,200,100,0.08)', accent: '#6DC87A' },
-    strength: { glow: 'rgba(100,150,255,0.08)', accent: '#6B9DFF' },
-  }
-  const theme = themeColors[ayah.theme] || themeColors.guard
+  const accentColor = themeMap[ayah.theme] || '#C9A84C'
 
   return (
     <div
-      className={`shield-screen min-h-dvh flex flex-col items-center justify-between px-6 py-12 ${shaking ? 'opacity-0' : ''} transition-opacity duration-300`}
-      style={{
-        background: `radial-gradient(ellipse at 50% 30%, ${theme.glow}, var(--bg) 60%)`,
-      }}
+      className="shield-screen min-h-dvh flex flex-col"
+      style={{ background: 'var(--bg)' }}
     >
-      {/* Top */}
-      <div className="w-full flex justify-between items-center">
-        <button onClick={() => navigate('/')} style={{ color: 'var(--text-dim)' }} className="text-sm">
-          ← Back
-        </button>
-        <div className="flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full" style={{
-            background: audioState === 'playing' ? '#6DC87A' : audioState === 'loading' ? theme.accent : 'var(--text-dim)',
-            animation: audioState === 'playing' ? 'pulse-gold 1.5s infinite' : 'none'
-          }} />
-          <span className="text-xs" style={{ color: 'var(--text-dim)' }}>
-            {audioState === 'loading' ? 'Loading recitation...' : audioState === 'playing' ? 'Playing' : audioState === 'error' ? 'No audio' : 'Done'}
-          </span>
-        </div>
-      </div>
-
-      {/* Ayah */}
-      <div className="flex flex-col items-center gap-8 text-center max-w-sm">
-        <div className="flicker">
-          <p className="arabic text-4xl leading-loose" style={{ color: 'var(--gold)' }}>
-            {ayah.arabic}
-          </p>
-        </div>
-
-        <div className="w-16 h-px" style={{ background: `linear-gradient(90deg, transparent, ${theme.accent}, transparent)` }} />
-
-        <div>
-          <p className="text-base leading-relaxed mb-2" style={{ color: 'var(--text)' }}>
-            {ayah.translation}
-          </p>
-          <p className="text-xs tracking-wider" style={{ color: 'var(--text-dim)' }}>
-            {ayah.ref}
-          </p>
-        </div>
-      </div>
-
-      {/* Bottom */}
-      <div className="w-full flex flex-col gap-3">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-5 pt-10 pb-4">
         <button
-          onClick={handleNewAyah}
-          className="w-full py-3.5 rounded-xl text-sm font-medium transition-all"
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 text-sm"
+          style={{ color: 'var(--text-dim)' }}
+        >
+          <span style={{ fontSize: 20 }}>‹</span> Back
+        </button>
+
+        {/* Audio indicator */}
+        <div className="flex items-center gap-2">
+          {audioState === 'playing' ? (
+            <div className="flex items-end gap-0.5" style={{ height: 20 }}>
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="audio-bar" style={{ animationDelay: `${i * 0.12}s` }} />
+              ))}
+            </div>
+          ) : audioState === 'loading' ? (
+            <div className="flex gap-1">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--text-dim)', animation: `pulse-ring ${0.8 + i * 0.15}s ease-in-out infinite` }} />
+              ))}
+            </div>
+          ) : audioState === 'error' ? (
+            <span className="text-xs" style={{ color: 'var(--text-dim)' }}>No audio</span>
+          ) : null}
+
+          {audioState === 'done' && (
+            <button
+              onClick={() => playAudio(ayah.audioUrl)}
+              className="text-xs px-3 py-1 rounded-full"
+              style={{ color: 'var(--gold)', border: '1px solid rgba(201,168,76,0.3)' }}
+            >
+              ↺ Replay
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Emotion filter pills */}
+      <div className="flex gap-2 px-5 pb-6 overflow-x-auto scrollbar-hide">
+        {EMOTIONS.map(e => (
+          <button
+            key={e.key}
+            onClick={() => {
+              setEmotion(e.key)
+              const next = e.key === 'all'
+                ? getRandomAyah(ayah.id)
+                : (require('../lib/ayahs').getAyahsByEmotion(e.key)[0] || getRandomAyah(ayah.id))
+              changeAyah(next)
+            }}
+            className="whitespace-nowrap text-xs px-3 py-1.5 rounded-full transition-all"
+            style={{
+              background: emotion === e.key ? accentColor + '22' : 'var(--bg3)',
+              border: `1px solid ${emotion === e.key ? accentColor + '88' : 'transparent'}`,
+              color: emotion === e.key ? accentColor : 'var(--text-dim)',
+              flexShrink: 0
+            }}
+          >
+            {e.label}
+          </button>
+        ))}
+      </div>
+
+      {/* MAIN: Arabic verse — the hero */}
+      <div
+        className="flex-1 flex flex-col items-center justify-center px-6"
+        style={{ opacity: transitioning ? 0 : 1, transition: 'opacity 0.3s ease' }}
+      >
+        {/* Ambient glow behind text */}
+        <div className="absolute" style={{
+          width: 300, height: 300,
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${accentColor}08, transparent 70%)`,
+          filter: 'blur(40px)',
+          pointerEvents: 'none'
+        }} />
+
+        <div
+          className={`arabic-quran text-center flicker ${audioState === 'playing' ? 'verse-playing' : ''}`}
           style={{
-            background: 'var(--bg3)',
-            border: `1px solid ${theme.accent}33`,
-            color: 'var(--text)'
+            color: 'var(--gold)',
+            fontSize: ayah.arabic.length < 60 ? '2.4rem' : ayah.arabic.length < 120 ? '1.9rem' : '1.5rem',
+            lineHeight: 2.4,
+            textShadow: audioState === 'playing' ? `0 0 40px ${accentColor}60` : 'none',
+            transition: 'text-shadow 1s ease, font-size 0.3s ease',
+            maxWidth: '100%'
           }}
         >
-          🔄 Another Ayah (or shake phone)
-        </button>
-
-        <div className="text-center">
-          <p className="text-xs" style={{ color: 'var(--text-dim)' }}>
-            Tap the back button when you feel steady
-          </p>
+          {ayah.arabic}
         </div>
+
+        {/* Decorative divider */}
+        <div className="flex items-center gap-3 my-6" style={{ width: '60%' }}>
+          <div className="flex-1 h-px" style={{ background: `linear-gradient(90deg, transparent, ${accentColor}40)` }} />
+          <div className="w-1 h-1 rounded-full" style={{ background: accentColor + '60' }} />
+          <div className="flex-1 h-px" style={{ background: `linear-gradient(90deg, ${accentColor}40, transparent)` }} />
+        </div>
+
+        {/* Translation — secondary, smaller */}
+        <p className="text-center leading-relaxed mb-1" style={{ color: 'var(--text-mid)', fontSize: '0.95rem', maxWidth: 320 }}>
+          {ayah.translation}
+        </p>
+        <p className="text-xs tracking-widest" style={{ color: 'var(--text-dim) ' }}>
+          {ayah.ref}
+        </p>
+      </div>
+
+      {/* Bottom controls */}
+      <div className="px-5 pb-10 pt-4 flex flex-col gap-3">
+        <button
+          onClick={() => changeAyah(getRandomAyah(ayah.id))}
+          className="w-full py-3.5 rounded-2xl text-sm transition-all"
+          style={{
+            background: 'var(--bg3)',
+            border: `1px solid ${accentColor}20`,
+            color: 'var(--text-mid)'
+          }}
+        >
+          Next Verse &nbsp;·&nbsp; <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>or shake phone</span>
+        </button>
       </div>
     </div>
   )

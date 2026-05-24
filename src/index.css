@@ -1,83 +1,102 @@
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&family=Outfit:wght@300;400;500;600&display=swap');
 
 :root {
   --gold: #C9A84C;
   --gold-dim: #8B6914;
-  --bg: #070A0F;
+  --gold-glow: rgba(201,168,76,0.15);
+  --bg: #060810;
   --bg2: #0D1117;
   --bg3: #111820;
+  --bg4: #0A1010;
   --text: #E8DCC8;
-  --text-dim: #7A7060;
-  --shield: #1A2A1A;
-  --shield-accent: #2D5A2D;
+  --text-dim: #6A6050;
+  --text-mid: #A09080;
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   background: var(--bg);
   color: var(--text);
   font-family: 'Outfit', sans-serif;
-  margin: 0;
   min-height: 100dvh;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
-.arabic {
-  font-family: 'Amiri', serif;
+.arabic-quran {
+  font-family: 'Scheherazade New', serif;
   direction: rtl;
-  line-height: 2;
+  line-height: 2.2;
+  letter-spacing: 0.02em;
 }
 
-@keyframes pulse-gold {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(201,168,76,0.4); }
-  50% { box-shadow: 0 0 0 20px rgba(201,168,76,0); }
+/* Animations */
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.6; }
+  50% { transform: scale(1.05); opacity: 0.2; }
+  100% { transform: scale(0.95); opacity: 0.6; }
 }
-
-@keyframes breathe-in {
-  0% { transform: scale(0.3); opacity: 0.3; }
-  100% { transform: scale(1); opacity: 1; }
+@keyframes float {
+  0%,100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
 }
-
-@keyframes breathe-out {
-  0% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(0.3); opacity: 0.3; }
+@keyframes shield-on {
+  0% { opacity: 0; transform: scale(1.03); filter: blur(4px); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
 }
-
 @keyframes flicker {
   0%,100% { opacity: 1; }
-  25% { opacity: 0.85; }
-  50% { opacity: 0.95; }
-  75% { opacity: 0.8; }
+  20% { opacity: 0.92; }
+  60% { opacity: 0.96; }
+  80% { opacity: 0.88; }
 }
-
-@keyframes shield-on {
-  0% { opacity: 0; transform: scale(1.05); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
-@keyframes float {
-  0%,100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
 @keyframes shimmer {
   0% { background-position: -200% center; }
   100% { background-position: 200% center; }
 }
-
-.panic-btn {
-  animation: pulse-gold 2.5s infinite, float 4s ease-in-out infinite;
+@keyframes breathe {
+  0%,100% { box-shadow: 0 0 20px rgba(201,168,76,0.1); }
+  50% { box-shadow: 0 0 60px rgba(201,168,76,0.3); }
+}
+@keyframes verse-glow {
+  0% { text-shadow: 0 0 0px rgba(201,168,76,0); }
+  50% { text-shadow: 0 0 30px rgba(201,168,76,0.4); }
+  100% { text-shadow: 0 0 0px rgba(201,168,76,0); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes audio-bar {
+  0%,100% { height: 4px; }
+  50% { height: 16px; }
 }
 
-.shield-screen { animation: shield-on 0.5s ease-out; }
-.flicker { animation: flicker 3s infinite; }
+.panic-btn { animation: float 4s ease-in-out infinite, breathe 3s ease-in-out infinite; }
+.shield-screen { animation: shield-on 0.6s cubic-bezier(0.16,1,0.3,1); }
+.flicker { animation: flicker 4s ease-in-out infinite; }
+.verse-playing { animation: verse-glow 2s ease-in-out infinite; }
+.slide-up { animation: slideUp 0.4s ease-out forwards; }
+
 .shimmer-text {
-  background: linear-gradient(90deg, var(--gold) 0%, #FFE08A 40%, var(--gold) 60%, var(--gold-dim) 100%);
+  background: linear-gradient(90deg, var(--gold-dim) 0%, var(--gold) 40%, #FFE599 55%, var(--gold) 70%, var(--gold-dim) 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  animation: shimmer 3s linear infinite;
+  animation: shimmer 4s linear infinite;
 }
+
+/* Audio bars animation */
+.audio-bar { 
+  width: 3px; 
+  background: var(--gold); 
+  border-radius: 2px;
+  animation: audio-bar 0.8s ease-in-out infinite;
+}
+.audio-bar:nth-child(2) { animation-delay: 0.15s; }
+.audio-bar:nth-child(3) { animation-delay: 0.3s; }
+.audio-bar:nth-child(4) { animation-delay: 0.45s; }
+.audio-bar:nth-child(5) { animation-delay: 0.1s; }
